@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import csv
 from matplotlib.widgets import Button
 from matplotlib.widgets import Cursor
-from matplotlib.patches import Rectangle
+from matplotlib.widgets import RectangleSelector
+from pylab import *
 
 time = []
 flux = []
@@ -21,70 +22,63 @@ plt.subplots_adjust(bottom=0.2)
 l, = plt.plot(time, raw, lw=2)
 plt.grid(True)
 
-class Annotate(object):
-    def __init__(self):
-        self.ax = plt.gca()
-        self.rect = Rectangle((0,0), 1, 1)
-        self.x0 = None
-        self.y0 = None
-        self.x1 = None
-        self.y1 = None
-        self.ax.add_patch(self.rect)
-        self.ax.figure.canvas.mpl_connect('button_press_event', self.on_press)
-        self.ax.figure.canvas.mpl_connect('button_release_event', self.on_release)
-
-    def on_press(self, event):
-        print 'press'
-        self.x0 = event.xdata
-        self.y0 = event.ydata
-
-    def on_release(self, event):
-        print 'release'
-        self.x1 = event.xdata
-        self.y1 = event.ydata
-        self.rect.set_width(self.x1 - self.x0)
-        self.rect.set_height(self.y1 - self.y0)
-        self.rect.set_xy((self.x0, self.y0))
-        self.ax.figure.canvas.draw()
-
-a = Annotate()
 plt.suptitle("Raw Data", fontsize=20)
 plt.xlabel('Time', fontsize=16)
 plt.ylabel('Flux', fontsize=16)
 
+
+def onselect(eclick, erelease):
+    'eclick and erelease are matplotlib events at press and release'
+    print ' startposition : (%f, %f)' % (eclick.xdata, eclick.ydata)
+    print ' endposition   : (%f, %f)' % (erelease.xdata, erelease.ydata)
+    print ' used button   : ', eclick.button
+    selectangle = Rectangle((0, 0), 1, 1)
+    selectangle.x0 = eclick.xdata
+    selectangle.y0 = eclick.ydata
+    selectangle.x1 = erelease.xdata
+    selectangle.y1 = erelease.ydata
+    selectangle.set_width(selectangle.x1 - selectangle.x0)
+    selectangle.set_height(selectangle.y1 - selectangle.y0)
+    selectangle.set_xy((selectangle.x0, selectangle.y0))
+    selectangle.figure.canvas.draw()
+
+
+def toggle_selector(event):
+    if event.key in ['Q', 'q'] and toggle_selector.RS.active:
+        print ' RectangleSelector deactivated.'
+        toggle_selector.RS.set_active(False)
+    if event.key in ['A', 'a'] and not toggle_selector.RS.active:
+        print ' RectangleSelector activated.'
+        toggle_selector.RS.set_active(True)
+
+
 class Index:
     ind = 0
-    def next(self, event):
-        #self.ind += 1
-        #i = self.ind % len(freqs)
-        ydata = flux
-        l.set_ydata(ydata)
-        plt.grid(True)
-        plt.suptitle("Detrended Data", fontsize=20)
-        plt.draw()
 
-    def prev(self, event):
-        #self.ind -= 1
-        #i = self.ind % len(freqs)
-        ydata = raw
-        l.set_ydata(ydata)
-        plt.grid(True)
-        plt.suptitle("Raw Data", fontsize=20)
-        plt.draw()
+    def toggle(self, event):
+        if toggle_selector.RS.active:
+            print ' RectangleSelector deactivated.'
+            toggle_selector.RS.set_active(False)
+        elif (not toggle_selector.RS.active):
+            print ' RectangleSelector activated.'
+            toggle_selector.RS.set_active(True)
+
+
+cursor = Cursor(ax, useblit=True, color='black', linewidth=2)
 
 callback = Index()
-axprev = plt.axes([0.7, 0.05, 0.1, 0.075])
-axnext = plt.axes([0.81, 0.05, 0.1, 0.075])
-bnext = Button(axnext, 'Next')
-bnext.on_clicked(callback.next)
-bprev = Button(axprev, 'Previous')
-bprev.on_clicked(callback.prev)
+togglePlacement = plt.axes([0.65, 0.05, 0.3, 0.075])
+rectToggle = Button(togglePlacement, 'Rectangle Select Toggle')
+rectToggle.on_clicked(callback.toggle)
 
-#l.set_title("Lightcurve 1")
+
+# l.set_title("Lightcurve 1")
 #l.set_xlabel("Time")
 #l.set_ylabel("Flux")
 
-cursor = Cursor(ax, useblit=True, color='black', linewidth=2 )
 plt.grid(True)
+
+toggle_selector.RS = RectangleSelector(ax, onselect, drawtype='line')
+toggle_selector.RS.set_active(False)
 
 plt.show()
