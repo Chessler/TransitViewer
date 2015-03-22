@@ -32,29 +32,18 @@ def onselect(eclick, erelease):
     print ' startposition : (%f, %f)' % (eclick.xdata, eclick.ydata)
     print ' endposition   : (%f, %f)' % (erelease.xdata, erelease.ydata)
     print ' used button   : ', eclick.button
-    selectangle = Rectangle((0, 0), 1, 1)
-    selectangle.x0 = eclick.xdata
-    selectangle.y0 = eclick.ydata
-    selectangle.x1 = erelease.xdata
-    selectangle.y1 = erelease.ydata
-    selectangle.set_width(selectangle.x1 - selectangle.x0)
-    selectangle.set_height(selectangle.y1 - selectangle.y0)
-    selectangle.set_xy((selectangle.x0, selectangle.y0))
-    selectangle.figure.canvas.draw()
 
 
 def toggle_selector(event):
-    if event.key in ['Q', 'q'] and toggle_selector.RS.active:
+    if toggle_selector.RS.active:
         print ' RectangleSelector deactivated.'
         toggle_selector.RS.set_active(False)
-    if event.key in ['A', 'a'] and not toggle_selector.RS.active:
+    if  not toggle_selector.RS.active:
         print ' RectangleSelector activated.'
         toggle_selector.RS.set_active(True)
 
 
 class Index:
-    ind = 0
-
     def toggle(self, event):
         if toggle_selector.RS.active:
             print ' RectangleSelector deactivated.'
@@ -64,6 +53,39 @@ class Index:
             toggle_selector.RS.set_active(True)
 
 
+class Annotate(object):
+    def __init__(self):
+        self.ax = plt.gca()
+        self.rect = Rectangle((0,0), 1, 1)
+        self.x0 = None
+        self.y0 = None
+        self.x1 = None
+        self.y1 = None
+        self.ax.add_patch(self.rect)
+        self.pressed = False
+        self.ax.figure.canvas.mpl_connect('button_press_event', self.on_press)
+        self.ax.figure.canvas.mpl_connect('button_release_event', self.on_release)
+
+    def on_press(self, event):
+        print 'press'
+        self.presssed = True
+        self.x0 = event.xdata
+        self.y0 = event.ydata
+
+    def on_release(self, event):
+        self.pressed = False
+        print 'release'
+        self.x1 = event.xdata
+        self.y1 = event.ydata
+        self.rect.set_width(self.x1 - self.x0)
+        self.rect.set_height(self.y1 - self.y0)
+        self.rect.set_xy((self.x0, self.y0))
+        if toggle_selector.RS.active:
+            self.rect.set_facecolor('blue')
+            self.rect.set_alpha(0.5)
+            self.ax.figure.canvas.draw()
+
+a = Annotate()
 cursor = Cursor(ax, useblit=True, color='black', linewidth=2)
 
 callback = Index()
