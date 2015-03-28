@@ -27,7 +27,9 @@ plt.ylabel('Flux', fontsize=16)
 
 beenSelected = False
 def findClosest(num, list):
-    return min(list, key=lambda x:abs(x-num))
+    new_list = [float(i) for i in list]
+    idx = (np.abs(new_list-num)).argmin()
+    return idx
 
 #for the rectangle selector
 def onselect(eclick, erelease):
@@ -35,7 +37,7 @@ def onselect(eclick, erelease):
     print ' startposition : (%f, %f)' % (eclick.xdata, eclick.ydata)
     print ' endposition   : (%f, %f)' % (erelease.xdata, erelease.ydata)
     global selectedDataRange
-    selectedDataRange = [eclick.xdata, erelease.xdata]
+    selectedDataRange = [erelease.xdata, eclick.xdata]
     global beenSelected
     beenSelected = True
 
@@ -60,21 +62,28 @@ class Index:
     def select(self, event):
         if not beenSelected:
             return
-        #newArr = flux[selectedDataRange[0]:selectedDataRange[1]]
-        #x1 = findClosest(selectedDataRange[0], flux)
-        print ("Beginning: " + str(selectedDataRange[1]))
-        print ("End: " + str(selectedDataRange[0]))
-        #f = range(0,10^7,300*(10^6))
-        #newFlux = dft(time, newArr, f)
-        #l, = plt.plot(time, newFlux, lw=2)
-        #plt.show()
+        global time
+        x1 = findClosest(selectedDataRange[0], time)
+        x2 = findClosest(selectedDataRange[1], time)
+        newArr = flux[x1:x2]
+        newTime = time[x1:x2]
+        newArr2 = [float(i) for i in newArr]
+        newTime2 = [float(i) for i in newTime]
+        f = range(0,10^7,300*(10^6))
+        newFlux = dft(newTime2, newArr2, f)
+        plt.clf()
+        l,=plt.plot(newTime2, newFlux, lw=2)
+        k,=plt.plot(newTime2, newArr, lw=2)
+        plt.show()
 
 #Discrete Fourier Transform, taken directly from Dr. Buzasi's MATLAB function
 #TODO: Make it work...
 def dft(t,x,f):
     i = 1j #might not have to set it to a variable but better safe than sorry!
     t = np.transpose(t) #the equivalent of t'
-    W = exp(-2*math.pi*i * f*t)
+    w1 = f*t
+    w2 = -2*math.pi*i
+    W = exp(w1*w2)
     X = W * x
     return X
 
