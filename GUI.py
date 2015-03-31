@@ -1,5 +1,6 @@
 # A simple test of importing the lightcurve.
 # ...that then became the main class of EVERYTHING
+import tkFileDialog
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
@@ -7,19 +8,34 @@ from matplotlib.widgets import Button
 from matplotlib.widgets import Cursor
 from matplotlib.widgets import RectangleSelector
 from pylab import *
+from Tkinter import Tk
+from tkFileDialog import askopenfilename
 
 time = []
 flux = []
 selectedDataRange = []
+resumeFlag = False
 
-# TODO: Make a class of File I/O
-f = open("firstCurve.out")
+Tk().withdraw() # open file open dialog
+filename = askopenfilename()
+f = open(filename)
 for row in csv.reader(f):
-    time.append(row[0])
-    flux.append(row[5])
+    if row[0] == 'R':
+        print("I made it")
+        resumeFlag = True
+        continue
+    if resumeFlag:
+        time.append(row[0])
+        flux.append(row[1])
+    else:
+        time.append(row[0])
+        flux.append(row[5])
 
 #for use later on
 beenSelected = False
+beenFouriered = False
+currentX = time
+currentY = flux
 
 #to find the closest index from what we select since it's *too* precise
 def findClosest(num, list):
@@ -67,6 +83,15 @@ class Index:
         if not beenSelected:
             return
         fourierSection()
+        global beenFouriered
+        beenFouriered = True
+
+    def saveFile(self, event):
+        outputFile = tkFileDialog.asksaveasfile(mode='w', defaultextension=".csv")
+        writer = csv.writer(outputFile, delimiter='\t')
+        writer.writerow("Resume")
+        writer.writerows(zip(currentX,currentY))
+        outputFile.close()
 
 
 #the section that processes doing the Fourier Transform and plotting it to screen
@@ -85,6 +110,9 @@ def fourierSection():
     ax.relim()
     ax.autoscale()
     fig.canvas.draw()
+    global currentX, currentY
+    currentX = newTime2
+    currentY = newFlux
 
 
 #Discrete Fourier Transform, taken directly from Dr. Buzasi's MATLAB function
@@ -150,6 +178,10 @@ rectToggle.on_clicked(callback.toggle)
 selectDataPlacement = plt.axes([0.45, 0.05, 0.15, 0.055])
 selectData = Button(selectDataPlacement, 'Select Data')
 selectData.on_clicked(callback.select)
+
+savePlacement = plt.axes([0.1, 0.05, 0.1, 0.055])
+saveData = Button(savePlacement, 'Save')
+saveData.on_clicked(callback.saveFile)
 
 toggle_selector.RS = RectangleSelector(ax, onselect, drawtype='line')
 toggle_selector.RS.set_active(False)
