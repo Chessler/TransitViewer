@@ -15,19 +15,26 @@ time = []
 flux = []
 selectedDataRange = []
 resumeFlag = False
+skipFlag = False
 
 Tk().withdraw() # open file open dialog
 filename = askopenfilename()
 f = open(filename)
 for row in csv.reader(f):
-    if row[0] == 'R':
-        print("I made it")
-        resumeFlag = True
+    for field in row:
+        if field[0] == 'R':
+            resumeFlag = True
+            skipFlag = True
+            break
+    if skipFlag:
+        skipFlag =False
         continue
+
     if resumeFlag:
         time.append(row[0])
         flux.append(row[1])
-    else:
+
+    if not resumeFlag:
         time.append(row[0])
         flux.append(row[5])
 
@@ -88,8 +95,8 @@ class Index:
 
     def saveFile(self, event):
         outputFile = tkFileDialog.asksaveasfile(mode='w', defaultextension=".csv")
-        writer = csv.writer(outputFile, delimiter='\t')
-        writer.writerow("Resume")
+        writer = csv.writer(outputFile, delimiter=',')
+        writer.writerow("R")
         writer.writerows(zip(currentX,currentY))
         outputFile.close()
 
@@ -101,9 +108,13 @@ def fourierSection():
     x2 = findClosest(selectedDataRange[1], time)
     newArr = flux[x1:x2]  #slicing the array
     newTime = time[x1:x2]
-    newArr2 = [float(i) for i in newArr]  #because dft bitches if we don't convert it
+    newArr2 = [float(i) for i in newArr]  #because dft complains if we don't convert it
     newTime2 = [float(i) for i in newTime]
-    f = range(0, 10 ^ 7, 300 * (10 ^ 6))  #the variables Dr. B gave me
+
+    f = createArrOfSize(0.0225, 1, size(newTime2))
+    
+    print size(f)
+    print size(newTime2)
     newFlux = dft(newTime2, newArr2, f)
     l.set_ydata(newFlux)
     l.set_xdata(newTime2)
@@ -114,6 +125,13 @@ def fourierSection():
     currentX = newTime2
     currentY = newFlux
 
+#create a frequency array of the size specified
+def createArrOfSize(start, stop, size):
+    increment = float(stop-start)/float(size)
+    print increment
+    arr = arange(start, stop, increment)
+    print len(arr)
+    return arr
 
 #Discrete Fourier Transform, taken directly from Dr. Buzasi's MATLAB function
 def dft(t, x, f):
@@ -122,9 +140,8 @@ def dft(t, x, f):
     w1 = f * t
     w2 = -2 * math.pi * i
     W = exp(w1 * w2)
-    X = W * x
-    return X
-
+    newArr = W * x
+    return newArr
 
 # the rectangle drawer
 class Annotate(object):
