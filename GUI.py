@@ -15,19 +15,19 @@ time = []
 flux = []
 selectedDataRange = []
 resumeFlag = False
-skipFlag = False
+beenTransf = False
 
 Tk().withdraw() # open file open dialog
 filename = askopenfilename()
 f = open(filename)
 for row in csv.reader(f):
-    for field in row:
-        if field[0] == 'R':
-            resumeFlag = True
-            skipFlag = True
-            break
-    if skipFlag:
-        skipFlag =False
+    #generated lightcurves are stored differently than saved lightcurves,
+    #so here we check if the file is a saved file or a new file
+    if row[0] == 'F' or row[0] == 'R':
+        resumeFlag = True
+        if row[0] == 'F':
+            global beenTransf
+            beenTransf = True
         continue
 
     if resumeFlag:
@@ -40,7 +40,6 @@ for row in csv.reader(f):
 
 #for use later on
 beenSelected = False
-beenFouriered = False
 currentX = time
 currentY = flux
 
@@ -89,14 +88,23 @@ class Index:
         #The code that's run when you hit the "Select Data" button
         if not beenSelected:
             return
-        fourierSection()
-        global beenFouriered
-        beenFouriered = True
+
+        global beenTransf
+        if beenTransf:
+            #do something else relating to phasing the data
+            print "Test"
+        else:
+            fourierSection()
+            beenTransf = True
 
     def saveFile(self, event):
         outputFile = tkFileDialog.asksaveasfile(mode='w', defaultextension=".csv")
         writer = csv.writer(outputFile, delimiter=',')
-        writer.writerow("R")
+        #check if we've done a Fourier transform and flag the file properly
+        if beenTransf:
+            writer.writerow("F")
+        else:
+            writer.writerow("R")
         writer.writerows(zip(currentX,currentY))
         outputFile.close()
 
@@ -108,19 +116,20 @@ def fourierSection():
     x2 = findClosest(selectedDataRange[1], time)
     newArr = flux[x1:x2]  #slicing the array
     newTime = time[x1:x2]
-    newArr2 = [float(i) for i in newArr]  #because dft complains if we don't convert it
+    #everything is already a float but we need to cast it anyway
+    newArr2 = [float(i) for i in newArr]
     newTime2 = [float(i) for i in newTime]
-
+    #creating a variable frequency array
     f = createArrOfSize(0.0225, 1, size(newTime2))
-    
-    print size(f)
-    print size(newTime2)
     newFlux = dft(newTime2, newArr2, f)
+    newFlux = np.absolute(newFlux)
+    #and we start re-plotting
     l.set_ydata(newFlux)
     l.set_xdata(newTime2)
     ax.relim()
     ax.autoscale()
     fig.canvas.draw()
+    #update the global x and y for use throughout the rest of the program
     global currentX, currentY
     currentX = newTime2
     currentY = newFlux
@@ -184,8 +193,8 @@ plt.suptitle("Corrected Data", fontsize=20)
 plt.xlabel('Time', fontsize=16)
 plt.ylabel('Flux', fontsize=16)
 
-a = Annotate()  #the rectangle, I'm too scared to rename it
-cursor = Cursor(ax, useblit=True, color='black', linewidth=2)  #the crosshair of AWESOME
+a = Annotate()  #the rectangle
+cursor = Cursor(ax, useblit=True, color='black', linewidth=2)  #the crosshair
 
 callback = Index()  #button handler
 togglePlacement = plt.axes([0.65, 0.05, 0.3, 0.055])
