@@ -120,12 +120,14 @@ def fourierSection():
     newArr2 = [float(i) for i in newArr]
     newTime2 = [float(i) for i in newTime]
     #creating a variable frequency array
-    f = createArrOfSize(0.0225, 1, size(newTime2))
+    f = createArrOfSize(0.0225, 30, size(newTime2))
+    newTime2 = np.asarray(newTime2)
+    newArr2 = np.asarray(newArr2)
+    f = np.asarray(f)
     newFlux = dft(newTime2, newArr2, f)
-    newFlux = np.absolute(newFlux)
     #and we start re-plotting
-    l.set_ydata(newFlux)
-    l.set_xdata(newTime2)
+    l.set_ydata(np.abs(newFlux))
+    l.set_xdata(f)
     ax.relim()
     ax.autoscale()
     fig.canvas.draw()
@@ -137,20 +139,21 @@ def fourierSection():
 #create a frequency array of the size specified
 def createArrOfSize(start, stop, size):
     increment = float(stop-start)/float(size)
-    print increment
     arr = arange(start, stop, increment)
-    print len(arr)
     return arr
 
 #Discrete Fourier Transform, taken directly from Dr. Buzasi's MATLAB function
 def dft(t, x, f):
-    i = 1j  #might not have to set it to a variable but better safe than sorry!
-    t = np.transpose(t)  #the equivalent of t'
-    w1 = f * t
-    w2 = -2 * math.pi * i
-    W = exp(w1 * w2)
-    newArr = W * x
-    return newArr
+    N = t.size
+    i = 1j
+    W = np.exp((-2 * math.pi * i)*np.dot(f.reshape(N,1),t.reshape(1,N)))
+    X = np.dot(W,x.reshape(N,1))
+    out = X.reshape(f.shape).T
+    #outputFile = tkFileDialog.asksaveasfile(mode='w', defaultextension=".csv")
+    #writer = csv.writer(outputFile, delimiter=',')
+    #writer.writerow(newArr)
+    #outputFile.close()
+    return out
 
 # the rectangle drawer
 class Annotate(object):
