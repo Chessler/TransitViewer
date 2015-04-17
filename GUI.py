@@ -13,6 +13,7 @@ from tkFileDialog import askopenfilename
 
 time = []
 flux = []
+frequency = []
 selectedDataRange = []
 resumeFlag = False
 beenTransf = False
@@ -111,30 +112,39 @@ class Index:
 
 #the section that processes doing the Fourier Transform and plotting it to screen
 def fourierSection():
-    global time  #this is how we modify global variables
+    global time, flux  #this is how we modify global variables
     x1 = findClosest(selectedDataRange[0], time)  #find variables in flux array
     x2 = findClosest(selectedDataRange[1], time)
     newArr = flux[x1:x2]  #slicing the array
+    newArr = [float(i) for i in newArr]
+    mean = np.mean(newArr)
+    newArr2 = []
+    newArr2[:] = [x - mean for x in newArr]
     newTime = time[x1:x2]
     #everything is already a float but we need to cast it anyway
-    newArr2 = [float(i) for i in newArr]
     newTime2 = [float(i) for i in newTime]
     #creating a variable frequency array
-    f = createArrOfSize(0.0225, 30, size(newTime2))
+    f = createArrOfSize(0.0225, 10, size(newTime2))
     newTime2 = np.asarray(newTime2)
     newArr2 = np.asarray(newArr2)
     f = np.asarray(f)
     newFlux = dft(newTime2, newArr2, f)
     #and we start re-plotting
     l.set_ydata(np.abs(newFlux))
+    ymax = np.amax(np.abs(newFlux))
     l.set_xdata(f)
-    ax.relim()
-    ax.autoscale()
+    ax.set_ylim([0,ymax+1000])
+    ax.set_xlim([0,10])
+    #ax.autoscale(True)
     fig.canvas.draw()
     #update the global x and y for use throughout the rest of the program
-    global currentX, currentY
+    global currentX, currentY, time, frequency
     currentX = newTime2
-    currentY = newFlux
+    currentY = np.abs(newFlux)
+    time = newTime2
+    flux = newArr
+    frequency = f
+    phaseData()
 
 #create a frequency array of the size specified
 def createArrOfSize(start, stop, size):
@@ -149,11 +159,27 @@ def dft(t, x, f):
     W = np.exp((-2 * math.pi * i)*np.dot(f.reshape(N,1),t.reshape(1,N)))
     X = np.dot(W,x.reshape(N,1))
     out = X.reshape(f.shape).T
-    #outputFile = tkFileDialog.asksaveasfile(mode='w', defaultextension=".csv")
-    #writer = csv.writer(outputFile, delimiter=',')
-    #writer.writerow(newArr)
-    #outputFile.close()
     return out
+
+def phaseData():
+    global currentY, time, frequency, flux
+    #peak = currentY.index(max(currentY))
+    peak = np.argmax(currentY)
+    print peak
+    f_max = frequency[peak]
+    phasedTime = time
+    phasedTime[:] = [x*f_max for x in time]
+    #modulus operator is % in Python as well as other languages
+    #normal programmers actually use (meaning languages with C-like syntax)
+    phasedTime[:] = [x%1 for x in time]
+    l.set_ydata(flux)
+    ymax = np.amax(flux)
+    xmax = np.amax(phasedTime)
+    l.set_xdata(phasedTime)
+    ax.set_ylim([0,ymax+10])
+    ax.set_xlim([0,xmax])
+    #ax.autoscale(True)
+    fig.canvas.draw()
 
 # the rectangle drawer
 class Annotate(object):
