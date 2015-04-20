@@ -1,6 +1,7 @@
 # A simple test of importing the lightcurve.
 # ...that then became the main class of EVERYTHING
 import tkFileDialog
+import time as tardis
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
@@ -162,6 +163,7 @@ def dft(t, x, f):
     return out
 
 def phaseData():
+    tardis.sleep(5)
     global currentY, time, frequency, flux
     #peak = currentY.index(max(currentY))
     peak = np.argmax(currentY)
@@ -172,13 +174,17 @@ def phaseData():
     #modulus operator is % in Python as well as other languages
     #normal programmers actually use (meaning languages with C-like syntax)
     phasedTime[:] = [x%1 for x in time]
+    yx = zip(phasedTime, flux)
+    yx.sort()
+    flux = [x for y, x in yx]
+    phasedTime.sort()
     l.set_ydata(flux)
     ymax = np.amax(flux)
+    ymin = np.amin(flux)
     xmax = np.amax(phasedTime)
     l.set_xdata(phasedTime)
-    ax.set_ylim([0,ymax+10])
+    ax.set_ylim([ymin-10,ymax+10])
     ax.set_xlim([0,xmax])
-    #ax.autoscale(True)
     fig.canvas.draw()
 
 # the rectangle drawer
