@@ -93,8 +93,7 @@ class Index:
 
         global beenTransf
         if beenTransf:
-            #do something else relating to phasing the data
-            print "Test"
+            phaseData()
         else:
             fourierSection()
             beenTransf = True
@@ -103,6 +102,10 @@ class Index:
         outputFile = tkFileDialog.asksaveasfile(mode='w', defaultextension=".csv")
         writer = csv.writer(outputFile, delimiter=',')
         #check if we've done a Fourier transform and flag the file properly
+        if beenPhased:
+            global f_max
+            f_max_string = str(f_max)
+            writer.writerows(f_max_string)
         if beenTransf:
             writer.writerow("F")
         else:
@@ -130,13 +133,17 @@ def fourierSection():
     newArr2 = np.asarray(newArr2)
     f = np.asarray(f)
     newFlux = dft(newTime2, newArr2, f)
+
     #and we start re-plotting
     l.set_ydata(np.abs(newFlux))
     ymax = np.amax(np.abs(newFlux))
     l.set_xdata(f)
     ax.set_ylim([0,ymax+1000])
     ax.set_xlim([0,10])
-    #ax.autoscale(True)
+    ax.set_title("Transformed Data", fontsize=20)
+    ax.set_xlabel('Frequency', fontsize=16)
+    ax.set_ylabel('Flux', fontsize=16)
+    selectData.label.set_text("Phase Data")
     fig.canvas.draw()
     #update the global x and y for use throughout the rest of the program
     global currentX, currentY, time, frequency
@@ -145,7 +152,6 @@ def fourierSection():
     time = newTime2
     flux = newArr
     frequency = f
-    phaseData()
 
 #create a frequency array of the size specified
 def createArrOfSize(start, stop, size):
@@ -163,11 +169,10 @@ def dft(t, x, f):
     return out
 
 def phaseData():
-    tardis.sleep(5)
     global currentY, time, frequency, flux
-    #peak = currentY.index(max(currentY))
     peak = np.argmax(currentY)
     print peak
+    global f_max
     f_max = frequency[peak]
     phasedTime = time
     phasedTime[:] = [x*f_max for x in time]
@@ -185,6 +190,9 @@ def phaseData():
     l.set_xdata(phasedTime)
     ax.set_ylim([ymin-10,ymax+10])
     ax.set_xlim([0,xmax])
+    ax.set_title("Phased Data", fontsize=20)
+    global beenPhased
+    beenPhased = True
     fig.canvas.draw()
 
 # the rectangle drawer
@@ -224,7 +232,6 @@ plt.subplots_adjust(bottom=0.2)
 l, = plt.plot(time, flux, lw=2)
 plt.grid(True)
 
-plt.suptitle("Corrected Data", fontsize=20)
 plt.xlabel('Time', fontsize=16)
 plt.ylabel('Flux', fontsize=16)
 
