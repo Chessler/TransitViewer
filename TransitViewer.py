@@ -25,11 +25,16 @@ f = open(filename)
 for row in csv.reader(f):
     #generated lightcurves are stored differently than saved lightcurves,
     #so here we check if the file is a saved file or a new file
-    if row[0] == 'F' or row[0] == 'R':
+    if row[0] == 'F' or row[0] == 'R' or row[0] == 'P':
         resumeFlag = True
         if row[0] == 'F':
             global beenTransf
             beenTransf = True
+        if row[0] == 'P':
+            global beenTransf
+            beenTransf = True
+            global beenPhased
+            beenPhased = True
         continue
 
     if resumeFlag:
@@ -102,11 +107,7 @@ class Index:
         outputFile = tkFileDialog.asksaveasfile(mode='w', defaultextension=".csv")
         writer = csv.writer(outputFile, delimiter=',')
         #check if we've done a Fourier transform and flag the file properly
-        if beenPhased:
-            global f_max
-            f_max_string = str(f_max)
-            writer.writerows(f_max_string)
-        if beenTransf:
+        if beenTransf and not beenPhased:
             writer.writerow("F")
         else:
             writer.writerow("R")
@@ -190,6 +191,7 @@ def phaseData():
     l.set_xdata(phasedTime)
     ax.set_ylim([ymin-10,ymax+10])
     ax.set_xlim([0,xmax])
+    ax.set_xlabel('Time', fontsize=16)
     ax.set_title("Phased Data", fontsize=20)
     global beenPhased
     beenPhased = True
